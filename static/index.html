@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Management Dashboard | FastAPI</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Top Navbar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+          <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 leading-tight">Student Portal</h1>
+          <p class="text-xs text-slate-500 font-medium">FastAPI Backend Management UI</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- API Status Indicator -->
+        <div id="apiStatusBadge" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span id="apiStatusText">API Connected</span>
+        </div>
+
+        <!-- Swagger Docs Link -->
+        <a href="/docs" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-indigo-600 hover:bg-slate-100 transition border border-slate-200" title="Open Swagger API documentation">
+          <i data-lucide="book-open" class="w-4 h-4"></i>
+          <span class="hidden md:inline">API Docs</span>
+        </a>
+
+        <!-- Add Student Button -->
+        <button onclick="openCreateModal()" class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-sm transition">
+          <i data-lucide="user-plus" class="w-4 h-4"></i>
+          <span>Add Student</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+    <!-- KPI / Overview Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Total Students -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Students</p>
+          <h3 id="statTotalStudents" class="text-2xl font-bold text-slate-900 mt-1">-</h3>
+          <p class="text-xs text-slate-400 mt-0.5">Enrolled records</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+          <i data-lucide="users" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <!-- Class Average -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Class Average</p>
+          <h3 id="statAvgMarks" class="text-2xl font-bold text-slate-900 mt-1">-</h3>
+          <p class="text-xs text-slate-400 mt-0.5">Overall performance</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <i data-lucide="trending-up" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <!-- Top Performer -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div class="overflow-hidden pr-2">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Top Performer</p>
+          <h3 id="statTopPerformer" class="text-lg font-bold text-slate-900 mt-1 truncate">-</h3>
+          <p id="statTopPerformerMarks" class="text-xs text-emerald-600 font-medium mt-0.5">Highest score</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+          <i data-lucide="award" class="w-6 h-6"></i>
+        </div>
+      </div>
+
+      <!-- Grade Breakdown -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div class="w-full">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Grade Breakdown</p>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span id="badgeCountAplus" class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800">A+: 0</span>
+            <span id="badgeCountA" class="px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800">A: 0</span>
+            <span id="badgeCountB" class="px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800">B: 0</span>
+            <span id="badgeCountFail" class="px-2 py-0.5 rounded text-xs font-semibold bg-rose-100 text-rose-800">F: 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter & Action Controls -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+      <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        
+        <!-- Search bar -->
+        <div class="relative flex-1">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input 
+            type="text" 
+            id="searchInput"
+            placeholder="Search by student name or email..." 
+            class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+            oninput="handleSearch()"
+          />
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Course Filter Dropdown (triggers /filter endpoint or client filter) -->
+          <div class="flex items-center gap-1.5">
+            <label for="courseFilter" class="text-xs font-medium text-slate-500 hidden sm:inline">Course:</label>
+            <select 
+              id="courseFilter" 
+              onchange="handleCourseFilter()"
+              class="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">All Courses</option>
+            </select>
+          </div>
+
+          <!-- Sort Selector -->
+          <div class="flex items-center gap-1.5">
+            <label for="sortSelect" class="text-xs font-medium text-slate-500 hidden sm:inline">Sort:</label>
+            <select 
+              id="sortSelect" 
+              onchange="handleSortChange()"
+              class="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="id_asc">ID (Ascending)</option>
+              <option value="id_desc">ID (Descending)</option>
+              <option value="marks_desc">Marks (High to Low)</option>
+              <option value="marks_asc">Marks (Low to High)</option>
+            </select>
+          </div>
+
+          <!-- View Mode Toggle: All vs Paginated -->
+          <button 
+            id="btnTogglePagination" 
+            onclick="togglePaginationMode()" 
+            class="px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition"
+            title="Toggle between full list and backend paginated mode"
+          >
+            <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+            <span id="paginationModeText">Mode: Paginated</span>
+          </button>
+
+          <!-- Refresh Button -->
+          <button 
+            onclick="loadInitialData()" 
+            class="p-2 border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-600 transition"
+            title="Refresh Data"
+          >
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Students Table Card -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50/75 border-b border-slate-200 text-slate-500 text-xs font-semibold uppercase tracking-wider">
+              <th class="py-3.5 px-4 w-16">ID</th>
+              <th class="py-3.5 px-4">Student</th>
+              <th class="py-3.5 px-4">Course</th>
+              <th class="py-3.5 px-4">Age</th>
+              <th class="py-3.5 px-4">Marks</th>
+              <th class="py-3.5 px-4">Grade</th>
+              <th class="py-3.5 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody" class="divide-y divide-slate-100 text-sm text-slate-700">
+            <!-- Loading Skeleton placeholder -->
+            <tr>
+              <td colspan="7" class="py-12 text-center text-slate-400">
+                <div class="flex flex-col items-center justify-center gap-2">
+                  <i data-lucide="loader" class="w-6 h-6 animate-spin text-indigo-600"></i>
+                  <span>Loading students from backend...</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div id="paginationFooter" class="px-4 py-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+        <div class="flex items-center gap-2">
+          <span>Rows per page:</span>
+          <select id="limitSelect" onchange="changeLimit(this.value)" class="border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none">
+            <option value="3">3</option>
+            <option value="5" selected>5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+          </select>
+          <span id="pageInfoText" class="ml-2">Showing 0 of 0</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button 
+            id="prevPageBtn" 
+            onclick="prevPage()" 
+            class="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-100 rounded-md disabled:opacity-40 disabled:cursor-not-allowed font-medium transition"
+          >
+            Previous
+          </button>
+          <span id="currentPageBadge" class="px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded font-semibold border border-indigo-100">1</span>
+          <button 
+            id="nextPageBtn" 
+            onclick="nextPage()" 
+            class="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-100 rounded-md disabled:opacity-40 disabled:cursor-not-allowed font-medium transition"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Create / Edit Student Modal -->
+  <div id="studentModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full overflow-hidden transform transition-all">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div class="flex items-center gap-2">
+          <div id="modalIconContainer" class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+          </div>
+          <h3 id="modalTitle" class="text-base font-bold text-slate-900">Add New Student</h3>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="studentForm" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
+        <!-- Error Alert within Modal -->
+        <div id="modalError" class="hidden p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
+          <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 mt-0.5"></i>
+          <span id="modalErrorText">An error occurred</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Student ID -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs font-semibold text-slate-700">Student ID *</label>
+              <button type="button" id="btnAutoId" onclick="suggestNextId()" class="text-[11px] text-indigo-600 hover:underline">Auto-suggest</button>
+            </div>
+            <input 
+              type="number" 
+              id="formId" 
+              required 
+              min="1" 
+              placeholder="e.g. 12" 
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <!-- Student Age -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Age * (0-100)</label>
+            <input 
+              type="number" 
+              id="formAge" 
+              required 
+              min="0" 
+              max="100" 
+              placeholder="e.g. 21" 
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <!-- Student Name -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name * (Letters and spaces only)</label>
+          <input 
+            type="text" 
+            id="formName" 
+            required 
+            placeholder="e.g. John Doe" 
+            class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          />
+        </div>
+
+        <!-- Student Email -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address *</label>
+          <input 
+            type="email" 
+            id="formEmail" 
+            required 
+            placeholder="e.g. john@example.com" 
+            class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Student Course -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Course *</label>
+            <input 
+              type="text" 
+              id="formCourse" 
+              required 
+              placeholder="e.g. Computer Science" 
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <!-- Student Marks & Live Grade Preview -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs font-semibold text-slate-700">Marks * (0-100)</label>
+              <span id="previewGradeBadge" class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">Grade: -</span>
+            </div>
+            <input 
+              type="number" 
+              id="formMarks" 
+              required 
+              min="0" 
+              max="100" 
+              placeholder="e.g. 85" 
+              oninput="updateGradePreview(this.value)"
+              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition">
+            Cancel
+          </button>
+          <button type="submit" id="modalSubmitBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
+            <span id="modalSubmitBtnText">Save Student</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Details Modal -->
+  <div id="detailsModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden p-6 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="font-bold text-slate-900 text-base">Student Details</h3>
+        <button onclick="closeDetailsModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <div id="detailAvatar" class="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xl shadow-inner">
+          --
+        </div>
+        <div>
+          <h4 id="detailName" class="text-lg font-bold text-slate-900 leading-tight">Student Name</h4>
+          <p id="detailEmail" class="text-xs text-slate-500">email@example.com</p>
+          <span id="detailGradeBadge" class="inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800">Grade: A+</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl text-xs border border-slate-100">
+        <div>
+          <span class="text-slate-400 block font-medium">Student ID</span>
+          <span id="detailId" class="text-slate-800 font-bold text-sm">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 block font-medium">Age</span>
+          <span id="detailAge" class="text-slate-800 font-bold text-sm">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 block font-medium">Course</span>
+          <span id="detailCourse" class="text-slate-800 font-bold text-sm">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 block font-medium">Marks Obtained</span>
+          <span id="detailMarks" class="text-slate-800 font-bold text-sm">-</span>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="closeDetailsModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-sm w-full p-6 space-y-4">
+      <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+        <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+      </div>
+      <div class="text-center">
+        <h3 class="text-base font-bold text-slate-900">Delete Student Record</h3>
+        <p class="text-xs text-slate-500 mt-1">
+          Are you sure you want to delete <strong id="deleteStudentName" class="text-slate-800">this student</strong> (ID: <span id="deleteStudentId"></span>)? This action cannot be undone.
+        </p>
+      </div>
+      <div class="flex items-center gap-2 pt-2">
+        <button onclick="closeDeleteModal()" class="flex-1 px-4 py-2 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-50 transition">
+          Cancel
+        </button>
+        <button id="confirmDeleteBtn" onclick="confirmDelete()" class="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
+          Yes, Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 max-w-sm pointer-events-none"></div>
+
+  <!-- JavaScript Client App -->
+  <script>
+    // Configuration: defaults to same-origin or localhost:8000
+    const API_BASE_URL = window.location.origin.includes('http') && !window.location.origin.includes('file:')
+      ? window.location.origin
+      : 'http://127.0.0.1:8000';
+
+    // State
+    let allStudents = [];
+    let displayedStudents = [];
+    let isPaginatedMode = true;
+    let currentPage = 1;
+    let pageLimit = 5;
+    let totalRecords = 0;
+    let editingStudentId = null;
+    let deletingStudentId = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadInitialData();
+    });
+
+    // Helper: Compute Grade from marks
+    function computeGrade(marks) {
+      const m = Number(marks);
+      if (m >= 90) return 'A+';
+      if (m >= 80) return 'A';
+      if (m >= 70) return 'B';
+      return 'FAIL';
+    }
+
+    // Helper: Get Grade Badge HTML
+    function getGradeBadge(grade) {
+      if (!grade) return '<span class="text-slate-400 text-xs">-</span>';
+      switch(grade) {
+        case 'A+':
+          return '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">A+</span>';
+        case 'A':
+          return '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">A</span>';
+        case 'B':
+          return '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">B</span>';
+        default:
+          return '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">FAIL</span>';
+      }
+    }
+
+    // Helper: Get Student Initials
+    function getInitials(name) {
+      if (!name) return 'S';
+      return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+    }
+
+    // Toast alerts
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-xs font-medium transform transition-all duration-300 translate-y-2 opacity-0 ${
+        type === 'success' 
+          ? 'bg-emerald-900/90 text-white border-emerald-700' 
+          : type === 'error'
+          ? 'bg-rose-900/90 text-white border-rose-700'
+          : 'bg-slate-900/90 text-white border-slate-700'
+      }`;
+      
+      const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'alert-triangle' : 'info';
+      toast.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 shrink-0"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-4');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Check API Connection Status
+    async function checkApiStatus() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/`);
+        if (res.ok) {
+          const badge = document.getElementById('apiStatusBadge');
+          badge.className = 'hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
+          document.getElementById('apiStatusText').innerText = 'API Connected';
+        }
+      } catch (err) {
+        const badge = document.getElementById('apiStatusBadge');
+        badge.className = 'hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200';
+        document.getElementById('apiStatusText').innerText = 'API Disconnected';
+      }
+    }
+
+    // Load initial data and stats
+    async function loadInitialData() {
+      await checkApiStatus();
+      await fetchAllStudentsForStats();
+      if (isPaginatedMode) {
+        await fetchPaginatedStudents();
+      } else {
+        renderTable(allStudents);
+      }
+    }
+
+    // Fetch all students for global stats & dropdown
+    async function fetchAllStudentsForStats() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/students`);
+        if (!res.ok) throw new Error('Failed to fetch students list');
+        allStudents = await res.json();
+        totalRecords = allStudents.length;
+        updateStats(allStudents);
+        populateCoursesDropdown(allStudents);
+      } catch (err) {
+        console.error(err);
+        showToast('Error connecting to backend: ' + err.message, 'error');
+      }
+    }
+
+    // Update Statistics Overview
+    function updateStats(students) {
+      document.getElementById('statTotalStudents').innerText = students.length;
+      if (students.length === 0) {
+        document.getElementById('statAvgMarks').innerText = '0';
+        document.getElementById('statTopPerformer').innerText = 'None';
+        return;
+      }
+
+      const totalMarks = students.reduce((acc, s) => acc + (s.marks || 0), 0);
+      const avg = (totalMarks / students.length).toFixed(1);
+      document.getElementById('statAvgMarks').innerText = avg;
+
+      // Find top performer
+      const top = [...students].sort((a, b) => b.marks - a.marks)[0];
+      if (top) {
+        document.getElementById('statTopPerformer').innerText = top.name;
+        document.getElementById('statTopPerformerMarks').innerText = `${top.marks} marks (${top.course})`;
+      }
+
+      // Count grades
+      let aPlus = 0, a = 0, b = 0, fail = 0;
+      students.forEach(s => {
+        const g = s.grade || computeGrade(s.marks);
+        if (g === 'A+') aPlus++;
+        else if (g === 'A') a++;
+        else if (g === 'B') b++;
+        else fail++;
+      });
+      document.getElementById('badgeCountAplus').innerText = `A+: ${aPlus}`;
+      document.getElementById('badgeCountA').innerText = `A: ${a}`;
+      document.getElementById('badgeCountB').innerText = `B: ${b}`;
+      document.getElementById('badgeCountFail').innerText = `F: ${fail}`;
+    }
+
+    // Populate Courses in Dropdown
+    function populateCoursesDropdown(students) {
+      const select = document.getElementById('courseFilter');
+      const currentVal = select.value;
+      const courses = Array.from(new Set(students.map(s => s.course))).filter(Boolean).sort();
+      
+      select.innerHTML = '<option value="">All Courses</option>';
+      courses.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.innerText = c;
+        select.appendChild(opt);
+      });
+      select.value = currentVal;
+    }
+
+    // Backend Paginated Fetch
+    async function fetchPaginatedStudents() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/pagination?page=${currentPage}&limit=${pageLimit}`);
+        if (!res.ok) throw new Error('Pagination request failed');
+        const data = await res.json();
+        
+        totalRecords = data.total_records;
+        displayedStudents = data.data;
+        renderTable(displayedStudents);
+        updatePaginationControls(data.page, data.limit, data.total_records);
+      } catch (err) {
+        console.error(err);
+        showToast('Error loading page: ' + err.message, 'error');
+      }
+    }
+
+    // Render Student Table
+    function renderTable(students) {
+      const tbody = document.getElementById('studentTableBody');
+      if (!students || students.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-12 text-center text-slate-400">
+              <div class="flex flex-col items-center justify-center gap-2">
+                <i data-lucide="inbox" class="w-8 h-8 text-slate-300"></i>
+                <span class="font-medium">No students found</span>
+                <p class="text-xs text-slate-400">Try adjusting your filters or click "Add Student".</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      tbody.innerHTML = students.map(s => {
+        const grade = s.grade || computeGrade(s.marks);
+        const initials = getInitials(s.name);
+        return `
+          <tr class="hover:bg-slate-50/80 transition-colors">
+            <td class="py-3.5 px-4 font-semibold text-slate-900">#${s.id}</td>
+            <td class="py-3.5 px-4">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+                  ${initials}
+                </div>
+                <div>
+                  <div class="font-semibold text-slate-900">${s.name}</div>
+                  <div class="text-xs text-slate-400">${s.email}</div>
+                </div>
+              </div>
+            </td>
+            <td class="py-3.5 px-4">
+              <span class="px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
+                ${s.course}
+              </span>
+            </td>
+            <td class="py-3.5 px-4 text-slate-600">${s.age}</td>
+            <td class="py-3.5 px-4">
+              <span class="font-bold text-slate-900">${s.marks}</span>
+              <span class="text-xs text-slate-400">/100</span>
+            </td>
+            <td class="py-3.5 px-4">
+              ${getGradeBadge(grade)}
+            </td>
+            <td class="py-3.5 px-4 text-right">
+              <div class="flex items-center justify-end gap-1.5">
+                <button 
+                  onclick="viewStudentDetails(${s.id})" 
+                  class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                  title="View details"
+                >
+                  <i data-lucide="eye" class="w-4 h-4"></i>
+                </button>
+                <button 
+                  onclick="openEditModal(${s.id})" 
+                  class="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                  title="Edit student"
+                >
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
+                <button 
+                  onclick="openDeleteModal(${s.id}, '${s.name.replace(/'/g, "\\'")}')" 
+                  class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                  title="Delete student"
+                >
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      
+      lucide.createIcons();
+    }
+
+    // Update Pagination UI Bar
+    function updatePaginationControls(page, limit, total) {
+      const footer = document.getElementById('paginationFooter');
+      if (!isPaginatedMode) {
+        footer.classList.add('hidden');
+        return;
+      }
+      footer.classList.remove('hidden');
+
+      const totalPages = Math.ceil(total / limit) || 1;
+      const start = (page - 1) * limit + 1;
+      const end = Math.min(page * limit, total);
+
+      document.getElementById('pageInfoText').innerText = total > 0 
+        ? `Showing ${start}-${end} of ${total}` 
+        : `Showing 0 of 0`;
+      document.getElementById('currentPageBadge').innerText = `${page} / ${totalPages}`;
+
+      document.getElementById('prevPageBtn').disabled = page <= 1;
+      document.getElementById('nextPageBtn').disabled = page >= totalPages;
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        fetchPaginatedStudents();
+      }
+    }
+
+    function nextPage() {
+      const totalPages = Math.ceil(totalRecords / pageLimit);
+      if (currentPage < totalPages) {
+        currentPage++;
+        fetchPaginatedStudents();
+      }
+    }
+
+    function changeLimit(newLimit) {
+      pageLimit = parseInt(newLimit, 10);
+      currentPage = 1;
+      fetchPaginatedStudents();
+    }
+
+    function togglePaginationMode() {
+      isPaginatedMode = !isPaginatedMode;
+      document.getElementById('paginationModeText').innerText = isPaginatedMode ? 'Mode: Paginated' : 'Mode: Show All';
+      if (isPaginatedMode) {
+        fetchPaginatedStudents();
+      } else {
+        renderTable(allStudents);
+        document.getElementById('paginationFooter').classList.add('hidden');
+      }
+    }
+
+    // Filter by Course using backend /filter endpoint
+    async function handleCourseFilter() {
+      const course = document.getElementById('courseFilter').value.trim();
+      if (!course) {
+        // Reset to normal pagination or all
+        if (isPaginatedMode) {
+          currentPage = 1;
+          fetchPaginatedStudents();
+        } else {
+          renderTable(allStudents);
+        }
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/filter?course=${encodeURIComponent(course)}`);
+        if (res.status === 404) {
+          renderTable([]);
+          return;
+        }
+        if (!res.ok) throw new Error('Filter failed');
+        const matches = await res.json();
+        renderTable(matches);
+        document.getElementById('paginationFooter').classList.add('hidden');
+      } catch (err) {
+        console.error(err);
+        showToast(err.message, 'error');
+      }
+    }
+
+    // Sort Handler using backend /sorted_students and /marks endpoints
+    async function handleSortChange() {
+      const sortVal = document.getElementById('sortSelect').value;
+      const [type, order] = sortVal.split('_');
+
+      try {
+        let endpoint = '';
+        if (type === 'id') {
+          endpoint = `${API_BASE_URL}/sorted_students?order=${order}`;
+        } else if (type === 'marks') {
+          endpoint = `${API_BASE_URL}/marks?order=${order}`;
+        }
+        
+        const res = await fetch(endpoint);
+        if (!res.ok) throw new Error('Sort request failed');
+        const sortedList = await res.json();
+        renderTable(sortedList);
+        document.getElementById('paginationFooter').classList.add('hidden');
+      } catch (err) {
+        console.error(err);
+        showToast('Sorting failed: ' + err.message, 'error');
+      }
+    }
+
+    // Client-side quick search by name or email
+    function handleSearch() {
+      const term = document.getElementById('searchInput').value.toLowerCase().trim();
+      if (!term) {
+        if (isPaginatedMode) {
+          fetchPaginatedStudents();
+        } else {
+          renderTable(allStudents);
+        }
+        return;
+      }
+
+      const filtered = allStudents.filter(s => 
+        (s.name && s.name.toLowerCase().includes(term)) || 
+        (s.email && s.email.toLowerCase().includes(term)) ||
+        (s.course && s.course.toLowerCase().includes(term))
+      );
+      renderTable(filtered);
+      document.getElementById('paginationFooter').classList.add('hidden');
+    }
+
+    // View Single Student (/students/{student_id})
+    async function viewStudentDetails(studentId) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/students/${studentId}`);
+        if (!res.ok) throw new Error('Could not fetch student details');
+        const s = await res.json();
+        
+        const grade = s.grade || computeGrade(s.marks);
+        document.getElementById('detailAvatar').innerText = getInitials(s.name);
+        document.getElementById('detailName').innerText = s.name;
+        document.getElementById('detailEmail').innerText = s.email;
+        document.getElementById('detailGradeBadge').innerHTML = `Grade: ${grade}`;
+        document.getElementById('detailId').innerText = `#${s.id}`;
+        document.getElementById('detailAge').innerText = `${s.age} years`;
+        document.getElementById('detailCourse').innerText = s.course;
+        document.getElementById('detailMarks').innerText = `${s.marks} / 100`;
+
+        document.getElementById('detailsModal').classList.remove('hidden');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function closeDetailsModal() {
+      document.getElementById('detailsModal').classList.add('hidden');
+    }
+
+    // Modal helpers for Create & Edit
+    function openCreateModal() {
+      editingStudentId = null;
+      document.getElementById('modalTitle').innerText = 'Add New Student';
+      document.getElementById('modalSubmitBtnText').innerText = 'Create Student';
+      document.getElementById('studentForm').reset();
+      document.getElementById('formId').disabled = false;
+      document.getElementById('btnAutoId').classList.remove('hidden');
+      document.getElementById('modalError').classList.add('hidden');
+      updateGradePreview('');
+      suggestNextId();
+      document.getElementById('studentModal').classList.remove('hidden');
+    }
+
+    async function openEditModal(studentId) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/students/${studentId}`);
+        if (!res.ok) throw new Error('Student not found');
+        const s = await res.json();
+
+        editingStudentId = studentId;
+        document.getElementById('modalTitle').innerText = `Edit Student #${s.id}`;
+        document.getElementById('modalSubmitBtnText').innerText = 'Update Student';
+        
+        document.getElementById('formId').value = s.id;
+        document.getElementById('formId').disabled = true; // ID cannot be changed in PUT /update/{student_id}
+        document.getElementById('btnAutoId').classList.add('hidden');
+        document.getElementById('formName').value = s.name;
+        document.getElementById('formAge').value = s.age;
+        document.getElementById('formEmail').value = s.email;
+        document.getElementById('formCourse').value = s.course;
+        document.getElementById('formMarks').value = s.marks;
+        document.getElementById('modalError').classList.add('hidden');
+
+        updateGradePreview(s.marks);
+        document.getElementById('studentModal').classList.remove('hidden');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('studentModal').classList.add('hidden');
+    }
+
+    function updateGradePreview(marks) {
+      const badge = document.getElementById('previewGradeBadge');
+      if (marks === '' || isNaN(marks)) {
+        badge.innerText = 'Grade: -';
+        badge.className = 'text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600';
+        return;
+      }
+      const grade = computeGrade(marks);
+      badge.innerText = `Grade: ${grade}`;
+      if (grade === 'A+') badge.className = 'text-[11px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800';
+      else if (grade === 'A') badge.className = 'text-[11px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800';
+      else if (grade === 'B') badge.className = 'text-[11px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800';
+      else badge.className = 'text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-800';
+    }
+
+    function suggestNextId() {
+      if (allStudents.length === 0) {
+        document.getElementById('formId').value = 1;
+        return;
+      }
+      const maxId = Math.max(...allStudents.map(s => Number(s.id) || 0));
+      document.getElementById('formId').value = maxId + 1;
+    }
+
+    // Handle Form Submit: POST /create or PUT /update/{student_id}
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const errBox = document.getElementById('modalError');
+      const errText = document.getElementById('modalErrorText');
+      errBox.classList.add('hidden');
+
+      const id = parseInt(document.getElementById('formId').value, 10);
+      const name = document.getElementById('formName').value.trim();
+      const age = parseInt(document.getElementById('formAge').value, 10);
+      const email = document.getElementById('formEmail').value.trim();
+      const course = document.getElementById('formCourse').value.trim();
+      const marks = parseInt(document.getElementById('formMarks').value, 10);
+
+      // Name validation: only alphabetic and spaces
+      if (!name.replace(/\s+/g, '').match(/^[A-Za-z]+$/)) {
+        errBox.classList.remove('hidden');
+        errText.innerText = 'Name must contain only alphabetic characters and spaces.';
+        return;
+      }
+
+      const payload = { id, name, age, email, course, marks };
+
+      const submitBtn = document.getElementById('modalSubmitBtn');
+      const submitBtnText = document.getElementById('modalSubmitBtnText');
+      const originalText = submitBtnText.innerText;
+      submitBtnText.innerText = 'Saving...';
+      submitBtn.disabled = true;
+
+      try {
+        let res;
+        if (editingStudentId) {
+          // PUT /update/{student_id}
+          res = await fetch(`${API_BASE_URL}/update/${editingStudentId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          // POST /create
+          res = await fetch(`${API_BASE_URL}/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        const data = await res.json();
+        if (!res.ok) {
+          let msg = data.detail || 'Failed to save student record';
+          if (Array.isArray(data.detail)) {
+            msg = data.detail.map(d => d.msg).join(', ');
+          }
+          throw new Error(msg);
+        }
+
+        closeModal();
+        showToast(editingStudentId ? 'Student updated successfully!' : 'Student added successfully!', 'success');
+        await loadInitialData();
+      } catch (err) {
+        errBox.classList.remove('hidden');
+        errText.innerText = err.message;
+      } finally {
+        submitBtnText.innerText = originalText;
+        submitBtn.disabled = false;
+      }
+    }
+
+    // Delete Modal
+    function openDeleteModal(studentId, studentName) {
+      deletingStudentId = studentId;
+      document.getElementById('deleteStudentId').innerText = studentId;
+      document.getElementById('deleteStudentName').innerText = studentName;
+      document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').classList.add('hidden');
+      deletingStudentId = null;
+    }
+
+    async function confirmDelete() {
+      if (!deletingStudentId) return;
+      const btn = document.getElementById('confirmDeleteBtn');
+      btn.innerText = 'Deleting...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/delete/${deletingStudentId}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || 'Failed to delete student');
+        }
+
+        closeDeleteModal();
+        showToast(`Student #${deletingStudentId} deleted successfully`, 'success');
+        await loadInitialData();
+      } catch (err) {
+        showToast('Delete failed: ' + err.message, 'error');
+      } finally {
+        btn.innerText = 'Yes, Delete';
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

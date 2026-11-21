@@ -1,0 +1,78 @@
+{
+    "students": [
+        {
+            "id": 1,
+            "name": "Aarav Sharma",
+            "age": 20,
+            "email": "aarav.sharma@example.com",
+            "course": "Computer Science",
+            "marks": 88
+        },
+        {
+            "id": 2,
+            "name": "Emma Johnson",
+            "age": 21,
+            "email": "emma.johnson@example.com",
+            "course": "Mathematics",
+            "marks": 92
+        },
+        {
+            "id": 6,
+            "name": "Mei Lin",
+            "age": 19,
+            "email": "mei.lin@example.com",
+            "course": "Chemistry",
+            "marks": 90
+        },
+        {
+            "id": 7,
+            "name": "Mohammed Al-Farsi",
+            "age": 23,
+            "email": "mohammed.alfarsi@example.com",
+            "course": "Engineering",
+            "marks": 79
+        },
+        {
+            "id": 8,
+            "name": "Olivia Brown",
+            "age": 21,
+            "email": "olivia.brown@example.com",
+            "course": "English Literature",
+            "marks": 85
+        },
+        {
+            "id": 9,
+            "name": "Lucas Silva",
+            "age": 20,
+            "email": "lucas.silva@example.com",
+            "course": "Business Administration",
+            "marks": 72
+        },
+        {
+            "id": 10,
+            "name": "Priya Patel",
+            "age": 22,
+            "email": "priya.patel@example.com",
+            "course": "Data Science",
+            "marks": 96
+        },
+        {
+            "id": 11,
+            "name": "Anuraj Yadav",
+            "age": 22,
+            "email": "ANURAJ@exe.com",
+            "course": "FAST API",
+            "marks": 99,
+            "grade": "A+"
+        },
+        {
+            "id": 13,
+            "name": "Abc Def",
+            "age": 27,
+            "email": "acd@hjs.com",
+            "course": "History",
+            "marks": 100,
+            "grade": "A+"
+        }
+    ]
+}
